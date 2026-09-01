@@ -138,6 +138,30 @@ input::placeholder, textarea::placeholder {
  * bottom sheet, a card in a list) without ever printing app chrome.
  */
 @media print {
+  /*
+   * Two Chrome print-preview hazards, both present on every screen because
+   * they're structural (app shell sizing + always-on decorative motion),
+   * not anything the QR label itself does:
+   *
+   * 1. `min-h-dvh` (AppFrame/AdminShell's outer shell) — `visibility:
+   *    hidden` still leaves the element in layout, so the print pass still
+   *    has to resolve a *dynamic* viewport-height unit while laying out a
+   *    fixed-size page. That resolution can fail to converge and the
+   *    preview never finishes rendering ("Chargement de l'aperçu..."
+   *    forever). Print doesn't have a dynamic toolbar to react to anyway,
+   *    so there's nothing lost in pinning it.
+   * 2. `infinite` CSS animations (chi-scan, chi-float, chi-drift-*) — an
+   *    animation that never reaches a final frame can likewise stop the
+   *    print rasterizer from ever considering the page "settled".
+   */
+  .min-h-dvh {
+    min-height: 0 !important;
+  }
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
   body * {
     visibility: hidden;
   }
