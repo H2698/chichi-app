@@ -1,12 +1,45 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/lib/store";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
   const showToast = useAppStore((s) => s.showToast);
+  const [email, setEmail] = useState("chichi@bychichi.tn");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      showToast("Entrez votre identifiant et votre mot de passe");
+      return;
+    }
+    if (!supabaseConfigured) {
+      // No backend configured — keep the old offline/demo behaviour.
+      router.push("/home");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setLoading(false);
+      showToast("Identifiant ou mot de passe incorrect");
+      return;
+    }
+    // Force a fresh pull of the shop's data now that we have a signed-in
+    // session — a prior attempt on this page load would have been rejected
+    // by RLS while signed out, so `hydrated` may still be false, but even a
+    // re-login (after sign-out) should always refetch rather than reuse a
+    // previous session's cached state.
+    useAppStore.setState({ hydrated: false });
+    await useAppStore.getState().hydrate();
+    setLoading(false);
+    router.push("/home");
+  };
 
   return (
     <div className="chi-fade relative flex min-h-full flex-col overflow-hidden px-[34px] pb-10 pt-8">
@@ -50,7 +83,8 @@ export default function LoginPage() {
             </div>
             <input
               type="text"
-              defaultValue="chichi@bychichi.tn"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-[14px] border border-border-input bg-card px-4 py-[15px] text-[15px] text-ink outline-none"
             />
           </label>
@@ -60,15 +94,19 @@ export default function LoginPage() {
             </div>
             <input
               type="password"
-              defaultValue="chichi2026"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLogin();
+              }}
               className="w-full rounded-[14px] border border-border-input bg-card px-4 py-[15px] text-[15px] text-ink outline-none"
             />
           </label>
         </div>
 
         <div className="mt-[26px]">
-          <Button variant="dark" onClick={() => router.push("/home")}>
-            Se connecter
+          <Button variant="dark" onClick={handleLogin} disabled={loading}>
+            {loading ? "Connexion..." : "Se connecter"}
           </Button>
         </div>
         <div

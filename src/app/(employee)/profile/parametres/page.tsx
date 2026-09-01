@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BackHeader } from "@/components/shell/BackHeader";
 import { Toggle } from "@/components/ui/Toggle";
 import { ChevronRightIcon } from "@/components/icons";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 export default function ParametresPage() {
   const router = useRouter();
@@ -65,7 +66,10 @@ export default function ParametresPage() {
       </div>
 
       <div
-        onClick={() => router.push("/login")}
+        onClick={async () => {
+          if (supabaseConfigured) await supabase.auth.signOut();
+          router.push("/login");
+        }}
         className="mt-6 flex cursor-pointer items-center gap-[14px] rounded-[32px] bg-pill px-5 py-[13px] hover:bg-pill-hover"
       >
         <div className="flex-1 text-[14.5px] text-[#b1553f]">Se déconnecter</div>

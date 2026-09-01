@@ -1,5 +1,6 @@
 import type { Viewport } from "next";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { AuthGate } from "@/components/shell/AuthGate";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -9,5 +10,9 @@ export const viewport: Viewport = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AdminShell>{children}</AdminShell>;
+  return (
+    <AuthGate>
+      <AdminShell>{children}</AdminShell>
+    </AuthGate>
+  );
 }
