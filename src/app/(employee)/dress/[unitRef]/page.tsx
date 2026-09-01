@@ -80,7 +80,16 @@ export default function DressDetailPage() {
       : unit.baseStatus === "louee"
         ? [
             { label: "Enregistrer le retour", dark: true, onClick: () => openSheet("return") },
-            { label: "Voir la location", outline: true, onClick: () => router.push("/reservations") },
+            {
+              label: "Voir la location",
+              outline: true,
+              onClick: () =>
+                router.push(
+                  active
+                    ? `/reservations?highlight=${active.id}&day=${active.returnDay}`
+                    : "/reservations"
+                ),
+            },
             {
               label: "Appeler la cliente",
               ghost: true,

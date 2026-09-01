@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BackHeader } from "@/components/shell/BackHeader";
 import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot } from "@/components/ui/Card";
@@ -21,13 +21,29 @@ const STATUS_STYLE: Record<ReservationStatus, { label: string; dot: string; fg: 
 
 export default function ReservationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const dayParam = searchParams.get("day");
+
   const reservations = useAppStore((s) => s.reservations);
   const units = useAppStore((s) => s.units);
   const models = useAppStore((s) => s.models);
   const customers = useAppStore((s) => s.customers);
 
-  const [selectedDay, setSelectedDay] = useState<number | null>(TODAY_DAY);
+  const [selectedDay, setSelectedDay] = useState<number | null>(() => {
+    const parsed = dayParam ? Number(dayParam) : NaN;
+    return Number.isFinite(parsed) ? parsed : TODAY_DAY;
+  });
   const [showCalendar, setShowCalendar] = useState(false);
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (highlightId) {
+      highlightRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    // Only on mount: scroll to the reservation we were sent here to see.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const daysWithActivity = useMemo(() => {
     const set = new Set<number>();
@@ -136,11 +152,18 @@ export default function ReservationsPage() {
             const unit = units.find((u) => u.ref === r.unitRef);
             const customer = customers.find((c) => c.id === r.customerId);
             const status = STATUS_STYLE[reservationStatus(r, units)];
+            const isHighlighted = highlightId === r.id;
             return (
               <div
                 key={r.id}
+                ref={isHighlighted ? highlightRef : undefined}
                 onClick={() => unit && router.push(`/dress/${unit.ref}`)}
-                className="flex cursor-pointer items-center gap-[13px] rounded-[18px] border border-border bg-card p-[13px]"
+                className="flex cursor-pointer items-center gap-[13px] rounded-[18px] border p-[13px]"
+                style={{
+                  borderColor: isHighlighted ? "#a5813f" : "var(--color-border)",
+                  background: isHighlighted ? "#fdf7ea" : "var(--color-card)",
+                  boxShadow: isHighlighted ? "0 0 0 1px #a5813f" : "none",
+                }}
               >
                 <div className="h-[78px] w-[60px] flex-shrink-0 overflow-hidden rounded-xl bg-[#efe6d5]">
                   <ImageSlot placeholder="Robe" shape="rounded" radius={12} />
