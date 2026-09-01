@@ -150,12 +150,24 @@ input::placeholder, textarea::placeholder {
    *    preview never finishes rendering ("Chargement de l'aperçu..."
    *    forever). Print doesn't have a dynamic toolbar to react to anyway,
    *    so there's nothing lost in pinning it.
+   *    Tailwind compiles `sm:min-h-dvh` / `lg:min-h-dvh` (both used here)
+   *    as their OWN rules behind their own `@media (min-width: ...)` guard
+   *    -- a plain `.min-h-dvh` override does not touch them, and a printed
+   *    page's width in CSS px routinely clears the `sm`/`lg` breakpoints.
+   *    Matched below with an attribute selector on the class string so
+   *    every responsive variant is covered, not just the base class.
    * 2. `infinite` CSS animations (chi-scan, chi-float, chi-drift-*) — an
    *    animation that never reaches a final frame can likewise stop the
    *    print rasterizer from ever considering the page "settled".
    */
-  .min-h-dvh {
+  [class*="min-h-dvh"],
+  [class*="h-dvh"],
+  [class*="min-h-svh"],
+  [class*="h-svh"],
+  [class*="min-h-lvh"],
+  [class*="h-lvh"] {
     min-height: 0 !important;
+    height: auto !important;
   }
   *, *::before, *::after {
     animation: none !important;
