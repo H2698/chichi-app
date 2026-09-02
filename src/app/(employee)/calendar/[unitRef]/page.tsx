@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BackHeader } from "@/components/shell/BackHeader";
 import { CalendarGrid } from "@/components/ui/CalendarGrid";
@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, PhoneIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
-import { TODAY_MONTH_LABEL } from "@/lib/mock-data";
+import { TODAY_DAY } from "@/lib/mock-data";
+import { addMonthsClampToFirst } from "@/lib/dates";
 import { CAL, type CalStatusKey } from "@/lib/status";
 import { findModel, reservationCoveringDay } from "@/lib/selectors";
-import { dayLabel, money } from "@/lib/format";
+import { dayLabel, dayLabelFull, money, monthLabel } from "@/lib/format";
 
 export default function CalendarPage() {
   const params = useParams<{ unitRef: string }>();
@@ -32,6 +33,8 @@ export default function CalendarPage() {
   const sheet = useAppStore((s) => s.sheet);
   const sheetDay = useAppStore((s) => s.sheetDay);
   const closeSheet = useAppStore((s) => s.closeSheet);
+
+  const [monthEpoch, setMonthEpoch] = useState(TODAY_DAY);
 
   const sheetReservation =
     sheetDay !== null ? reservationCoveringDay(unitRef, sheetDay, reservations) : undefined;
@@ -83,16 +86,16 @@ export default function CalendarPage() {
 
       <div className="mt-[26px] flex items-center justify-between">
         <div
-          onClick={() => showToast("Seul le mois d’août 2026 est disponible pour cette démo")}
+          onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, -1))}
           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gold"
         >
           <ChevronLeftIcon size={14} strokeWidth={1.6} />
         </div>
         <div className="font-serif text-[24px] tracking-[0.5px] text-ink">
-          {TODAY_MONTH_LABEL}
+          {monthLabel(monthEpoch)}
         </div>
         <div
-          onClick={() => showToast("Seul le mois d’août 2026 est disponible pour cette démo")}
+          onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, 1))}
           className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-gold"
         >
           <ChevronRightIcon size={14} strokeWidth={1.6} />
@@ -100,7 +103,7 @@ export default function CalendarPage() {
       </div>
 
       <div className="mt-4">
-        <CalendarGrid unitRef={unitRef} />
+        <CalendarGrid unitRef={unitRef} monthEpoch={monthEpoch} />
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-2.5">
@@ -127,7 +130,7 @@ export default function CalendarPage() {
             <div className="text-[14.5px] text-[#4d6043]">Disponible pendant cette période</div>
           </div>
           <div className="mt-[9px] font-serif text-[22px] text-ink">
-            {dayLabel(selStart!)} → {dayLabel(selEnd!)} 2026
+            {dayLabel(selStart!)} → {dayLabelFull(selEnd!)}
           </div>
           <div className="mt-3.5">
             <Button

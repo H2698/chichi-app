@@ -7,7 +7,9 @@ import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot } from "@/components/ui/Card";
 import { useAppStore } from "@/lib/store";
 import { TODAY_DAY } from "@/lib/mock-data";
-import { AUGUST_2026_DAYS, WEEKDAYS_FR, AUGUST_2026_LEADING_BLANKS, dayLabel } from "@/lib/format";
+import { WEEKDAYS_FR, dayLabel, monthLabel } from "@/lib/format";
+import { addMonthsClampToFirst, daysInMonthGrid, dayOfMonth, leadingBlanksForMonth } from "@/lib/dates";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { reservationStatus, unitLabel } from "@/lib/selectors";
 import type { ReservationStatus } from "@/lib/types";
 
@@ -34,6 +36,7 @@ export default function ReservationsPage() {
     const parsed = dayParam ? Number(dayParam) : NaN;
     return Number.isFinite(parsed) ? parsed : TODAY_DAY;
   });
+  const [monthEpoch, setMonthEpoch] = useState(() => selectedDay ?? TODAY_DAY);
   const [showCalendar, setShowCalendar] = useState(false);
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
@@ -58,7 +61,8 @@ export default function ReservationsPage() {
     .filter((r) => selectedDay === null || r.pickupDay === selectedDay || r.returnDay === selectedDay)
     .sort((a, b) => a.pickupDay - b.pickupDay);
 
-  const strip = Array.from({ length: AUGUST_2026_DAYS }, (_, i) => i + 1);
+  const strip = daysInMonthGrid(monthEpoch);
+  const leadingBlanks = leadingBlanksForMonth(monthEpoch);
 
   return (
     <div className="chi-rise px-[22px] pb-[26px] pt-2.5">
@@ -81,6 +85,23 @@ export default function ReservationsPage() {
 
       {showCalendar ? (
         <div className="mt-3 rounded-[18px] border border-border bg-card p-3.5">
+          <div className="mb-2.5 flex items-center justify-between">
+            <div
+              onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, -1))}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gold"
+            >
+              <ChevronLeftIcon size={13} strokeWidth={1.6} />
+            </div>
+            <div className="font-caps text-[11px] tracking-[1.4px] text-ink">
+              {monthLabel(monthEpoch)}
+            </div>
+            <div
+              onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, 1))}
+              className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gold"
+            >
+              <ChevronRightIcon size={13} strokeWidth={1.6} />
+            </div>
+          </div>
           <div className="grid grid-cols-7">
             {WEEKDAYS_FR.map((w) => (
               <div
@@ -92,7 +113,7 @@ export default function ReservationsPage() {
             ))}
           </div>
           <div className="grid grid-cols-7 gap-[5px]">
-            {Array.from({ length: AUGUST_2026_LEADING_BLANKS }).map((_, i) => (
+            {Array.from({ length: leadingBlanks }).map((_, i) => (
               <div key={`blank-${i}`} className="h-[42px]" />
             ))}
             {strip.map((day) => {
@@ -121,7 +142,7 @@ export default function ReservationsPage() {
                       fontWeight: isToday ? 600 : 400,
                     }}
                   >
-                    {day}
+                    {dayOfMonth(day)}
                   </div>
                   <div className="h-1 w-1 rounded-full" style={{
                     background: hasActivity ? (isSelected ? "#c9a869" : "#b3873d") : "transparent",

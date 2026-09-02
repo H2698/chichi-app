@@ -49,7 +49,7 @@ export interface Reservation {
   id: string; // 'CHI-R-00284'
   unitRef: string;
   customerId: string;
-  pickupDay: number; // day-of-month in the demo calendar (August 2026)
+  pickupDay: number; // epoch day (days since 1970-01-01 UTC) — an absolute real date, see src/lib/dates.ts
   pickupTime: string;
   returnDay: number;
   returnTime: string;

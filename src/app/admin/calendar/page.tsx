@@ -6,19 +6,17 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Chip } from "@/components/ui/Chip";
 import { Dot } from "@/components/ui/Card";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ChevronRightIcon } from "@/components/icons";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
+import { AVAILABLE_SIZES, TODAY_DAY } from "@/lib/mock-data";
+import { WEEKDAYS_FR, dayLabel, monthLabel } from "@/lib/format";
 import {
-  AVAILABLE_SIZES,
-  TODAY_DAY,
-  TODAY_MONTH_LABEL,
-} from "@/lib/mock-data";
-import {
-  AUGUST_2026_DAYS,
-  AUGUST_2026_LEADING_BLANKS,
-  WEEKDAYS_FR,
-  dayLabel,
-} from "@/lib/format";
+  addMonthsClampToFirst,
+  daysInMonthGrid,
+  dayOfMonth,
+  leadingBlanksForMonth,
+  weekdayColumn,
+} from "@/lib/dates";
 import { getEventsForDay, getUnitDayStatus, unitLabel } from "@/lib/selectors";
 import { CAL, type CalStatusKey } from "@/lib/status";
 
@@ -35,11 +33,6 @@ const STATUS_FILTERS: { key: CalStatusKey | "all"; label: string }[] = [
   { key: "indispo", label: "Indisponible" },
 ];
 
-function weekdayColumnOf(day: number): number {
-  // August 2026: day 1 is a Monday-column-index 5 (Saturday); see AUGUST_2026_LEADING_BLANKS.
-  return (AUGUST_2026_LEADING_BLANKS + day - 1) % 7;
-}
-
 export default function AdminCalendarPage() {
   const router = useRouter();
   const models = useAppStore((s) => s.models);
@@ -49,6 +42,7 @@ export default function AdminCalendarPage() {
 
   const [view, setView] = useState<View>("Mois");
   const [selectedDay, setSelectedDay] = useState(TODAY_DAY);
+  const [monthEpoch, setMonthEpoch] = useState(TODAY_DAY);
   const [filterModelId, setFilterModelId] = useState("all");
   const [filterSize, setFilterSize] = useState("all");
   const [filterStatus, setFilterStatus] = useState<CalStatusKey | "all">("all");
@@ -87,14 +81,37 @@ export default function AdminCalendarPage() {
   const selected = dayInfo(selectedDay);
 
   const weekDays = useMemo(() => {
-    const col = weekdayColumnOf(selectedDay);
+    const col = weekdayColumn(selectedDay);
     const monday = selectedDay - col;
-    return Array.from({ length: 7 }, (_, i) => monday + i).filter((d) => d >= 1 && d <= AUGUST_2026_DAYS);
+    return Array.from({ length: 7 }, (_, i) => monday + i);
   }, [selectedDay]);
 
   return (
     <div className="px-[22px] pb-10 pt-2.5 lg:px-0 lg:pt-0">
-      <AdminPageHeader title="Calendrier global" subtitle={TODAY_MONTH_LABEL} />
+      <AdminPageHeader
+        title="Calendrier global"
+        subtitle={monthLabel(monthEpoch)}
+        action={
+          view === "Mois" ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, -1))}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border-input text-gold"
+              >
+                <ChevronLeftIcon size={13} strokeWidth={1.6} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonthEpoch((m) => addMonthsClampToFirst(m, 1))}
+                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border border-border-input text-gold"
+              >
+                <ChevronRightIcon size={13} strokeWidth={1.6} />
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
 
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
@@ -154,10 +171,10 @@ export default function AdminCalendarPage() {
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-[5px]">
-                {Array.from({ length: AUGUST_2026_LEADING_BLANKS }).map((_, i) => (
+                {Array.from({ length: leadingBlanksForMonth(monthEpoch) }).map((_, i) => (
                   <div key={`b-${i}`} className="h-[54px]" />
                 ))}
-                {Array.from({ length: AUGUST_2026_DAYS }, (_, i) => i + 1).map((day) => {
+                {daysInMonthGrid(monthEpoch).map((day) => {
                   const info = dayInfo(day);
                   const past = day < TODAY_DAY;
                   const isSelected = day === selectedDay;
@@ -188,7 +205,7 @@ export default function AdminCalendarPage() {
                           fontWeight: day === TODAY_DAY ? 600 : 400,
                         }}
                       >
-                        {day}
+                        {dayOfMonth(day)}
                       </div>
                       {count > 0 ? (
                         <div className="flex items-center gap-1">
@@ -222,9 +239,9 @@ export default function AdminCalendarPage() {
                     style={{ borderColor: day === selectedDay ? "#a5813f" : "#eee3d0" }}
                   >
                     <div className="font-caps text-[9px] tracking-[1.2px] text-tertiary">
-                      {WEEKDAYS_FR[weekdayColumnOf(day)]}
+                      {WEEKDAYS_FR[weekdayColumn(day)]}
                     </div>
-                    <div className="mt-1 font-serif text-[20px] text-ink">{day}</div>
+                    <div className="mt-1 font-serif text-[20px] text-ink">{dayOfMonth(day)}</div>
                     <div className="mt-2 flex flex-col gap-1.5">
                       {info.events.length === 0 ? (
                         <div className="text-[11px] text-secondary-2">—</div>
@@ -259,14 +276,14 @@ export default function AdminCalendarPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedDay((d) => Math.max(1, d - 1))}
+                    onClick={() => setSelectedDay((d) => d - 1)}
                     className="rounded-full border border-border-input px-3 py-1.5 text-[12.5px] text-secondary"
                   >
                     ‹ Préc.
                   </button>
                   <button
                     type="button"
-                    onClick={() => setSelectedDay((d) => Math.min(AUGUST_2026_DAYS, d + 1))}
+                    onClick={() => setSelectedDay((d) => d + 1)}
                     className="rounded-full border border-border-input px-3 py-1.5 text-[12.5px] text-secondary"
                   >
                     Suiv. ›

@@ -1,13 +1,17 @@
+import { epochDay, todayEpochDay } from "./dates";
+import { monthLabel, weekdayLabelFull } from "./format";
 import type { Customer, DressModel, DressUnit, Employee, Reservation } from "./types";
 
 /**
- * Demo "today" — matches the design handoff's header (SAMEDI 22 AOÛT) so the
- * calendar, agenda and stats all line up. Everything here is local mock
- * data; no backend is connected yet.
+ * The real "today" — the calendar, agenda and stats all read from this, so
+ * the app always reflects the actual current date instead of a fixed demo
+ * day. (This used to be hardcoded to "22" / "Août 2026", matching a design
+ * handoff mockup — that stopped being true the moment real time moved past
+ * that date.)
  */
-export const TODAY_DAY = 22;
-export const TODAY_MONTH_LABEL = "Août 2026";
-export const TODAY_WEEKDAY_LABEL = "SAMEDI 22 AOÛT";
+export const TODAY_DAY = todayEpochDay();
+export const TODAY_MONTH_LABEL = monthLabel(TODAY_DAY);
+export const TODAY_WEEKDAY_LABEL = weekdayLabelFull(TODAY_DAY);
 
 /** No auth yet — the app always runs as this seeded employee. */
 export const CURRENT_EMPLOYEE_ID = "emp-chichi";
@@ -157,14 +161,18 @@ export const CUSTOMERS: Customer[] = [
   },
 ];
 
+// These used to be plain "day-of-month in August 2026" (20, 22, 19...) back
+// when the whole app ran on that single fixed demo month. Converted 1:1 to
+// real epoch days for the same August 2026 dates — the meaning is
+// unchanged, only now they're absolute dates instead of an implicit month.
 export const SEED_RESERVATIONS: Reservation[] = [
   {
     id: "CHI-R-00281",
     unitRef: "CHI-0027-S-01",
     customerId: "cust-mariem",
-    pickupDay: 20,
+    pickupDay: epochDay(2026, 8, 20),
     pickupTime: "09:00",
-    returnDay: 22,
+    returnDay: epochDay(2026, 8, 22),
     returnTime: "12:00",
     price: 220,
     paid: 100,
@@ -175,9 +183,9 @@ export const SEED_RESERVATIONS: Reservation[] = [
     id: "CHI-R-00279",
     unitRef: "CHI-0063-L-01",
     customerId: "cust-yasmine",
-    pickupDay: 19,
+    pickupDay: epochDay(2026, 8, 19),
     pickupTime: "10:00",
-    returnDay: 20,
+    returnDay: epochDay(2026, 8, 20),
     returnTime: "18:00",
     price: 260,
     paid: 150,
@@ -188,9 +196,9 @@ export const SEED_RESERVATIONS: Reservation[] = [
     id: "CHI-R-00283",
     unitRef: "CHI-0071-S-01",
     customerId: "cust-nour",
-    pickupDay: 22,
+    pickupDay: epochDay(2026, 8, 22),
     pickupTime: "09:30",
-    returnDay: 24,
+    returnDay: epochDay(2026, 8, 24),
     returnTime: "19:00",
     price: 200,
     paid: 90,
@@ -201,9 +209,9 @@ export const SEED_RESERVATIONS: Reservation[] = [
     id: "CHI-R-00285",
     unitRef: "CHI-0082-M-01",
     customerId: "cust-lea",
-    pickupDay: 25,
+    pickupDay: epochDay(2026, 8, 25),
     pickupTime: "11:00",
-    returnDay: 27,
+    returnDay: epochDay(2026, 8, 27),
     returnTime: "18:00",
     price: 190,
     paid: 0,

@@ -1,12 +1,13 @@
 "use client";
 
-import { WEEKDAYS_FR, AUGUST_2026_DAYS, AUGUST_2026_LEADING_BLANKS } from "@/lib/format";
+import { WEEKDAYS_FR } from "@/lib/format";
+import { daysInMonthGrid, dayOfMonth, leadingBlanksForMonth } from "@/lib/dates";
 import { TODAY_DAY } from "@/lib/mock-data";
 import { CAL, type CalStatusKey } from "@/lib/status";
 import { useAppStore } from "@/lib/store";
 import { getUnitDayStatus } from "@/lib/selectors";
 
-export function CalendarGrid({ unitRef }: { unitRef: string }) {
+export function CalendarGrid({ unitRef, monthEpoch }: { unitRef: string; monthEpoch: number }) {
   const units = useAppStore((s) => s.units);
   const reservations = useAppStore((s) => s.reservations);
   const selStart = useAppStore((s) => s.selStart);
@@ -14,6 +15,8 @@ export function CalendarGrid({ unitRef }: { unitRef: string }) {
   const tapDay = useAppStore((s) => s.tapDay);
 
   const unit = units.find((u) => u.ref === unitRef);
+  const days = daysInMonthGrid(monthEpoch);
+  const leadingBlanks = leadingBlanksForMonth(monthEpoch);
 
   return (
     <div>
@@ -28,11 +31,11 @@ export function CalendarGrid({ unitRef }: { unitRef: string }) {
         ))}
       </div>
       <div className="grid grid-cols-7 gap-[5px]">
-        {Array.from({ length: AUGUST_2026_LEADING_BLANKS }).map((_, i) => (
+        {Array.from({ length: leadingBlanks }).map((_, i) => (
           <div key={`blank-${i}`} className="h-[46px]" />
         ))}
         {unit &&
-          Array.from({ length: AUGUST_2026_DAYS }, (_, i) => i + 1).map((day) => {
+          days.map((day) => {
             const key: CalStatusKey = getUnitDayStatus(unit, day, reservations);
             const c = CAL[key];
             const inRange =
@@ -62,7 +65,7 @@ export function CalendarGrid({ unitRef }: { unitRef: string }) {
                   className="leading-none"
                   style={{ fontSize: 14, color: fg, fontWeight: day === TODAY_DAY ? 600 : 400 }}
                 >
-                  {day}
+                  {dayOfMonth(day)}
                 </div>
                 <div className="flex h-[9px] items-center justify-center">
                   {mark ? (
