@@ -17,6 +17,7 @@ export default function DressesGalleryPage() {
   const allModels = useAppStore((s) => s.models);
   const units = useAppStore((s) => s.units);
   const reservations = useAppStore((s) => s.reservations);
+  const showToast = useAppStore((s) => s.showToast);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("Toutes");
 
@@ -74,7 +75,11 @@ export default function DressesGalleryPage() {
             return (
               <div
                 key={m.id}
-                onClick={() => primaryUnit && router.push(`/dress/${primaryUnit.ref}`)}
+                onClick={() =>
+                  primaryUnit
+                    ? router.push(`/dress/${primaryUnit.ref}`)
+                    : showToast("Aucune unité pour cette robe — ajoutez-en une depuis l'admin")
+                }
                 className="cursor-pointer"
               >
                 <div className="h-[196px] w-full overflow-hidden rounded-2xl bg-[#efe6d5]">

@@ -475,27 +475,40 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
     set((st) => ({ models: [...st.models, model], units: [...st.units, ...newUnits] }));
-    syncRemote(
-      "addDressModel:model",
-      supabase.from("models").insert({
-        id: model.id,
-        name: model.name,
-        category: model.category,
-        price: model.price,
-        deposit: model.deposit,
-        color: model.color,
-        sizes: model.sizes,
-        photo_slot: model.photoSlot,
-        photo_url: model.photoUrl ?? null,
-      })
-    );
-    if (newUnits.length > 0) {
-      syncRemote(
-        "addDressModel:units",
-        supabase.from("units").insert(
-          newUnits.map((u) => ({ ref: u.ref, model_id: u.modelId, size: u.size, base_status: u.baseStatus }))
-        )
-      );
+
+    // The units insert carries a model_id foreign key, so it must not fire
+    // until the model row has actually landed remotely — firing both writes
+    // at once (as before) raced the two requests, and when the units insert
+    // reached Supabase first it was rejected for referencing a model that
+    // didn't exist yet, silently leaving a model with zero physical units
+    // (shows in the catalog as "0 disponibles" and can't be opened, since
+    // there's no unit to route to). Sequencing them here closes that gap.
+    if (supabaseConfigured) {
+      (async () => {
+        const { error: modelError } = await supabase.from("models").insert({
+          id: model.id,
+          name: model.name,
+          category: model.category,
+          price: model.price,
+          deposit: model.deposit,
+          color: model.color,
+          sizes: model.sizes,
+          photo_slot: model.photoSlot,
+          photo_url: model.photoUrl ?? null,
+        });
+        if (modelError) {
+          console.error("[supabase] addDressModel:model failed:", modelError.message);
+          return;
+        }
+        if (newUnits.length > 0) {
+          syncRemote(
+            "addDressModel:units",
+            supabase.from("units").insert(
+              newUnits.map((u) => ({ ref: u.ref, model_id: u.modelId, size: u.size, base_status: u.baseStatus }))
+            )
+          );
+        }
+      })();
     }
     return id;
   },
