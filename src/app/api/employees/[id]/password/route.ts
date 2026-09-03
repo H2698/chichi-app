@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MIN_PASSWORD_LENGTH, requireCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
+import { MIN_PASSWORD_LENGTH, requireAdminCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
 
 /**
  * Lets the shop owner set a new password for an existing employee's login,
@@ -17,7 +17,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/employees/
     );
   }
 
-  const auth = await requireCaller(request);
+  const auth = await requireAdminCaller(request);
   if (auth.error) return auth.error;
 
   const { id } = await ctx.params;

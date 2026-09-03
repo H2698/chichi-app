@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
+import { requireAdminCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
 
 /**
  * Changes an employee's login email — both the Supabase Auth user (what
@@ -24,7 +24,7 @@ export async function PATCH(request: Request, ctx: RouteContext<"/api/employees/
     );
   }
 
-  const auth = await requireCaller(request);
+  const auth = await requireAdminCaller(request);
   if (auth.error) return auth.error;
 
   const { id } = await ctx.params;

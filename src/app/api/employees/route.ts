@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { MIN_PASSWORD_LENGTH, requireCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
+import { MIN_PASSWORD_LENGTH, requireAdminCaller, supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabaseAdmin";
 import type { Employee } from "@/lib/types";
 
 /**
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const auth = await requireCaller(request);
+  const auth = await requireAdminCaller(request);
   if (auth.error) return auth.error;
 
   const body = await request.json().catch(() => null);
