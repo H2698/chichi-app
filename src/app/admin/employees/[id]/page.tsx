@@ -44,6 +44,9 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
   const [role, setRole] = useState(employee.role);
   const [status, setStatus] = useState(employee.status);
 
+  const [email, setEmail] = useState(employee.email ?? "");
+  const [changingEmail, setChangingEmail] = useState(false);
+
   const [newPassword, setNewPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
 
@@ -55,6 +58,37 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
       status,
     });
     showToast("Fiche employée mise à jour");
+  };
+
+  const handleChangeEmail = async () => {
+    const trimmed = email.trim();
+    if (!trimmed || !trimmed.includes("@")) {
+      showToast("Entrez un email valide");
+      return;
+    }
+    setChangingEmail(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch(`/api/employees/${employee.id}/email`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ email: trimmed }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setChangingEmail(false);
+
+    if (!res.ok) {
+      showToast(json.error || "Impossible de modifier l'email");
+      return;
+    }
+    useAppStore.setState((st) => ({
+      employees: st.employees.map((e) => (e.id === employee.id ? { ...e, email: json.email } : e)),
+    }));
+    showToast("Email mis à jour");
   };
 
   const handleChangePassword = async () => {
@@ -153,8 +187,26 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
 
       {supabaseConfigured ? (
         <div className="mt-8">
-          <div className="mb-3 font-caps text-[10.5px] tracking-[1.6px] text-tertiary">SÉCURITÉ</div>
+          <div className="mb-3 font-caps text-[10.5px] tracking-[1.6px] text-tertiary">
+            COMPTE DE CONNEXION
+          </div>
+
           <label className="block">
+            <div className={labelClass}>Email</div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+          <div className="mt-3">
+            <Button variant="outline" onClick={handleChangeEmail} disabled={changingEmail}>
+              {changingEmail ? "Mise à jour..." : "Mettre à jour l'email"}
+            </Button>
+          </div>
+
+          <label className="mt-5 block">
             <div className={labelClass}>Nouveau mot de passe</div>
             <input
               type="text"
@@ -164,15 +216,17 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
               className={inputClass}
             />
           </label>
-          <div className="mt-2 rounded-2xl border border-border-soft bg-[#fdfaf3] px-4 py-3 text-[12px] leading-relaxed text-secondary-2">
-            Ne fonctionne que pour un compte créé via cette page (le sien y compris) — une fiche
-            plus ancienne, ajoutée avant cette fonctionnalité, n&apos;a pas de compte de connexion
-            réel à modifier.
-          </div>
-          <div className="mt-3.5">
+          <div className="mt-3">
             <Button variant="outline" onClick={handleChangePassword} disabled={changingPassword}>
               {changingPassword ? "Mise à jour..." : "Mettre à jour le mot de passe"}
             </Button>
+          </div>
+
+          <div className="mt-4 rounded-2xl border border-border-soft bg-[#fdfaf3] px-4 py-3 text-[12px] leading-relaxed text-secondary-2">
+            Ces deux champs changent le vrai compte de connexion (email et mot de passe utilisés à
+            /login) — pas seulement la fiche. Ne fonctionne que pour un compte créé via cette page
+            (le sien y compris) ; une fiche plus ancienne, ajoutée avant cette fonctionnalité, n&apos;a
+            pas de compte de connexion réel à modifier.
           </div>
         </div>
       ) : null}
