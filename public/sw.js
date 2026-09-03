@@ -1,4 +1,4 @@
-const CACHE = "chichii-v1";
+const CACHE = "chichii-v2";
 const CORE_ASSETS = [
   "/home",
   "/manifest.webmanifest",
@@ -32,44 +32,27 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Page navigations (and the underlying RSC/document fetches Next.js issues
-  // for them) must never be served cache-first: the URL for a given screen
-  // stays the same across deployments while its HTML/JS references change,
-  // so a stale-while-revalidate strategy here can pin a visitor's browser to
-  // a build that's already been fixed on the server (this is what silently
-  // hid the print-preview fix from repeat visitors). Go network-first for
-  // navigations, only falling back to the cache when actually offline.
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // Everything else (hashed build assets, icons, images) is safe to serve
-  // stale-while-revalidate: their URLs are content-hashed or rarely change,
-  // so a cached copy is never wrong for long, and this keeps the app usable
-  // offline.
+  // Network-first for everything same-origin, falling back to the cache
+  // only when actually offline. This used to be cache-first for hashed
+  // build assets (JS/CSS chunks, icons, images) on the assumption that
+  // their URLs are content-hashed and therefore never wrong — that
+  // assumption doesn't hold here: this build has repeatedly reused the
+  // exact same /_next/static chunk filename across deployments with
+  // genuinely different content (observed directly on the print-fix CSS
+  // chunk), so a browser that had ever cached that URL kept being served
+  // the old bytes forever, no matter how many times the underlying bug
+  // was fixed on the server. That's the same staleness failure page
+  // navigations were already fixed against — it just also applied one
+  // layer down, to the assets those pages load.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
