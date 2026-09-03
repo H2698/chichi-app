@@ -16,7 +16,27 @@ import type {
 } from "./types";
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+// Seed value only — matches the bundled mock data's reservation count for
+// the no-Supabase demo mode. Once real data exists, hydrate() below moves
+// this past the highest id actually in the database; never rely on this
+// literal once Supabase is configured.
 let reservationSeq = 286;
+
+/** Advances reservationSeq past the highest "CHI-R-NNNNN" id currently in
+ * `reservations`, so a freshly loaded app (reservationSeq always restarts
+ * at the literal above) can't hand out an id that already exists remotely.
+ * Without this, confirmReservation() would silently reuse an old id once
+ * more than 286 reservations existed — the insert fails quietly (fire-
+ * and-forget sync), and the new booking then shares its id with the old
+ * one, so whichever comes first in the array is what prints/displays. */
+function bumpReservationSeq(reservations: { id: string }[]) {
+  for (const r of reservations) {
+    const match = /^CHI-R-(\d+)$/.exec(r.id);
+    if (!match) continue;
+    const n = parseInt(match[1], 10);
+    if (n >= reservationSeq) reservationSeq = n + 1;
+  }
+}
 
 const emptyDraft: ReservationDraft = {
   unitRef: null,
@@ -265,11 +285,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         );
         return;
       }
+      const reservations = (reservationsRes.data as ReservationRow[]).map(reservationFromRow);
+      bumpReservationSeq(reservations);
       set({
         models: (modelsRes.data as ModelRow[]).map(modelFromRow),
         units: (unitsRes.data as UnitRow[]).map(unitFromRow),
         customers: (customersRes.data as CustomerRow[]).map(customerFromRow),
-        reservations: (reservationsRes.data as ReservationRow[]).map(reservationFromRow),
+        reservations,
         employees: (employeesRes.data as EmployeeRow[]).map(employeeFromRow),
         hydrated: true,
       });
@@ -388,22 +410,32 @@ export const useAppStore = create<AppState>((set, get) => ({
       selStart: null,
       selEnd: null,
     }));
-    syncRemote(
-      "confirmReservation",
-      supabase.from("reservations").insert({
-        id: reservation.id,
-        unit_ref: reservation.unitRef,
-        customer_id: reservation.customerId,
-        pickup_day: reservation.pickupDay,
-        pickup_time: reservation.pickupTime,
-        return_day: reservation.returnDay,
-        return_time: reservation.returnTime,
-        price: reservation.price,
-        paid: reservation.paid,
-        deposit: reservation.deposit,
-        method: reservation.method,
-      })
-    );
+    // A booking is too important to fail silently the way syncRemote's other
+    // fire-and-forget writes do (console.error only) — if the insert is
+    // rejected (e.g. a duplicate id, which is exactly what an out-of-sync
+    // reservationSeq used to cause), the employee needs to know this
+    // reservation didn't actually reach the database.
+    if (supabaseConfigured) {
+      (async () => {
+        const { error } = await supabase.from("reservations").insert({
+          id: reservation.id,
+          unit_ref: reservation.unitRef,
+          customer_id: reservation.customerId,
+          pickup_day: reservation.pickupDay,
+          pickup_time: reservation.pickupTime,
+          return_day: reservation.returnDay,
+          return_time: reservation.returnTime,
+          price: reservation.price,
+          paid: reservation.paid,
+          deposit: reservation.deposit,
+          method: reservation.method,
+        });
+        if (error) {
+          console.error("[supabase] confirmReservation failed:", error.message);
+          get().showToast("Échec de l'enregistrement de la réservation — réessayez");
+        }
+      })();
+    }
     // `draft` is deliberately left as-is (not reset to emptyDraft) here: the
     // summary/success screens still read draft.unitRef while navigating away,
     // and clearing it synchronously would trip their "no active draft, bounce
