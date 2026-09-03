@@ -200,6 +200,16 @@ interface AppState {
   hydrated: boolean;
   hydrate: () => Promise<void>;
 
+  // The signed-in Supabase Auth user, kept in sync by AppHydrator's session
+  // listener (mounted once at the root layout). Lets any screen work out
+  // "who am I" via lib/selectors' getCurrentEmployee — before this, several
+  // screens (home greeting, profile, "Mes informations") just assumed the
+  // single original account, "Chichi", regardless of who was actually
+  // signed in.
+  authUserId: string | null;
+  authUserEmail: string | null;
+  setAuthUser: (id: string | null, email: string | null) => void;
+
   toast: string | null;
   showToast: (message: string) => void;
 
@@ -299,6 +309,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.error("[supabase] hydrate threw:", err);
     }
   },
+
+  authUserId: null,
+  authUserEmail: null,
+  setAuthUser: (id, email) => set({ authUserId: id, authUserEmail: email }),
 
   toast: null,
   showToast: (message) => {

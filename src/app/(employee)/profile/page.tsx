@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { ImageSlot } from "@/components/ui/ImageSlot";
 import { ChevronRightIcon, DashboardIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
-import { getNotifications } from "@/lib/selectors";
+import { getCurrentEmployee, getNotifications } from "@/lib/selectors";
+import { CURRENT_EMPLOYEE_ID } from "@/lib/mock-data";
 
 const ROWS: { label: string; href: string }[] = [
   { label: "Mes informations", href: "/profile/mes-informations" },
@@ -20,7 +21,16 @@ export default function ProfilePage() {
   const reservations = useAppStore((s) => s.reservations);
   const models = useAppStore((s) => s.models);
   const customers = useAppStore((s) => s.customers);
+  const employees = useAppStore((s) => s.employees);
+  const authUserId = useAppStore((s) => s.authUserId);
+  const authUserEmail = useAppStore((s) => s.authUserEmail);
   const readNotificationIds = useAppStore((s) => s.readNotificationIds);
+
+  // Same identity fix as the home screen: show whoever actually signed in,
+  // not the original shared "Chichi" name and role.
+  const me =
+    getCurrentEmployee(employees, authUserId, authUserEmail) ??
+    employees.find((e) => e.id === CURRENT_EMPLOYEE_ID);
 
   const cleaningCount = units.filter((u) => u.baseStatus === "nettoyage").length;
   const unreadCount = getNotifications(reservations, units, models, customers).filter(
@@ -38,9 +48,11 @@ export default function ProfilePage() {
       <div className="mx-auto flex h-[96px] w-[96px] items-center justify-center rounded-full border border-border-input bg-card p-4">
         <ImageSlot src="/assets/bychichi-logo.png" alt="By Chichi" shape="circle" fit="contain" />
       </div>
-      <div className="mt-4 font-serif text-[28px] text-ink">Chichi</div>
+      <div className="mt-4 font-serif text-[28px] text-ink">
+        {me ? `${me.firstName} ${me.lastName}` : "Chichi"}
+      </div>
       <div className="mt-1.5 font-caps text-[9.5px] tracking-[2.2px] text-gold">
-        ÉQUIPE BOUTIQUE
+        {me?.role === "Admin" ? "ADMINISTRATRICE" : "ÉQUIPE BOUTIQUE"}
       </div>
 
       <div

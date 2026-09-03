@@ -5,8 +5,8 @@ import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot, IconCircle } from "@/components/ui/Card";
 import { BellIcon, ChevronRightIcon, PlusIcon, QrIcon, ReturnIcon, SearchIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
-import { getHomeStats, getNotifications, getTodayAgenda, unitLabel } from "@/lib/selectors";
-import { TODAY_WEEKDAY_LABEL } from "@/lib/mock-data";
+import { getCurrentEmployee, getHomeStats, getNotifications, getTodayAgenda, unitLabel } from "@/lib/selectors";
+import { CURRENT_EMPLOYEE_ID, TODAY_WEEKDAY_LABEL } from "@/lib/mock-data";
 
 export default function HomePage() {
   const router = useRouter();
@@ -14,8 +14,19 @@ export default function HomePage() {
   const units = useAppStore((s) => s.units);
   const reservations = useAppStore((s) => s.reservations);
   const customers = useAppStore((s) => s.customers);
+  const employees = useAppStore((s) => s.employees);
+  const authUserId = useAppStore((s) => s.authUserId);
+  const authUserEmail = useAppStore((s) => s.authUserEmail);
   const readNotificationIds = useAppStore((s) => s.readNotificationIds);
   const showToast = useAppStore((s) => s.showToast);
+
+  // Every screen used to greet whoever opened the app as "Chichi" — the
+  // original shared account — regardless of which employee actually signed
+  // in. Resolve the real signed-in person, falling back to the legacy
+  // constant only when there's no real session (local demo mode).
+  const me =
+    getCurrentEmployee(employees, authUserId, authUserEmail) ??
+    employees.find((e) => e.id === CURRENT_EMPLOYEE_ID);
 
   const stats = getHomeStats(units, reservations);
   const agenda = getTodayAgenda(reservations).slice(0, 3);
@@ -59,7 +70,7 @@ export default function HomePage() {
             {TODAY_WEEKDAY_LABEL}
           </div>
           <div className="mt-1.5 font-serif text-[33px] leading-[1.1] text-ink">
-            Bonjour, Chichi
+            Bonjour, {me?.firstName ?? "Chichi"}
           </div>
         </div>
         <div className="flex items-center gap-2.5 pt-1">

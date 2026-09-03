@@ -6,6 +6,7 @@ import type {
   Customer,
   DressModel,
   DressUnit,
+  Employee,
   Reservation,
   ReservationStatus,
   UnitStatus,
@@ -14,6 +15,35 @@ import type {
 /** Looks a model up in the live (store) models array — includes admin-added dresses. */
 export function findModel(modelId: string, models: DressModel[]): DressModel | undefined {
   return models.find((m) => m.id === modelId);
+}
+
+/**
+ * Resolves the signed-in Supabase Auth user to their `employees` directory
+ * row — id first (how every employee created through /api/employees is
+ * linked), email as a fallback for the handful of legacy rows whose id
+ * predates that. Mirrors AuthGate's currentUserIsAdmin lookup, but returns
+ * the row itself so screens can show the person's actual name, not just a
+ * yes/no on their role.
+ *
+ * Returns undefined when signed out, when Supabase isn't configured (local
+ * demo mode), or when the account has no matching directory row at all —
+ * callers should fall back to something sensible (e.g. CURRENT_EMPLOYEE_ID)
+ * rather than crash or show a blank name.
+ */
+export function getCurrentEmployee(
+  employees: Employee[],
+  authUserId: string | null,
+  authUserEmail: string | null
+): Employee | undefined {
+  if (authUserId) {
+    const byId = employees.find((e) => e.id === authUserId);
+    if (byId) return byId;
+  }
+  if (authUserEmail) {
+    const byEmail = employees.find((e) => e.email === authUserEmail);
+    if (byEmail) return byEmail;
+  }
+  return undefined;
 }
 
 export function unitLabel(unit: DressUnit, models: DressModel[]): string {

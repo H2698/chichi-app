@@ -7,7 +7,9 @@ import { ImageSlot } from "@/components/ui/ImageSlot";
 import { UploadIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
 import { CURRENT_EMPLOYEE_ID } from "@/lib/mock-data";
+import { getCurrentEmployee } from "@/lib/selectors";
 import { uploadPhoto } from "@/lib/supabase";
+import type { Employee } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-[14px] border border-border-input bg-card px-4 py-3.5 text-[15px] text-ink outline-none";
@@ -15,18 +17,37 @@ const labelClass = "mb-1.5 block font-caps text-[9.5px] tracking-[2.2px] text-go
 
 export default function MesInformationsPage() {
   const employees = useAppStore((s) => s.employees);
+  const authUserId = useAppStore((s) => s.authUserId);
+  const authUserEmail = useAppStore((s) => s.authUserEmail);
+
+  // This used to always look up the hardcoded CURRENT_EMPLOYEE_ID
+  // ("emp-chichi") — so any employee opening "Mes informations" was
+  // actually viewing and, on save, overwriting Chichi's own directory row,
+  // not their own. Resolve the real signed-in person instead, same as the
+  // home and profile screens; keep the old constant only as the local-demo
+  // fallback (no real Supabase session to resolve against).
+  const me =
+    getCurrentEmployee(employees, authUserId, authUserEmail) ??
+    employees.find((e) => e.id === CURRENT_EMPLOYEE_ID);
+
+  if (!me) return null;
+
+  // Keyed on the employee id so the form's local state resets if the
+  // resolved "me" changes (e.g. the auth session resolves after the seed
+  // fallback already rendered once) — otherwise the input fields would
+  // stay stuck on whichever employee's data they first initialized from.
+  return <MesInformationsForm key={me.id} me={me} />;
+}
+
+function MesInformationsForm({ me }: { me: Employee }) {
   const updateEmployee = useAppStore((s) => s.updateEmployee);
   const showToast = useAppStore((s) => s.showToast);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const me = employees.find((e) => e.id === CURRENT_EMPLOYEE_ID);
-
-  const [firstName, setFirstName] = useState(me?.firstName ?? "");
-  const [lastName, setLastName] = useState(me?.lastName ?? "");
-  const [phone, setPhone] = useState(me?.phone ?? "");
-  const [email, setEmail] = useState(me?.email ?? "");
-
-  if (!me) return null;
+  const [firstName, setFirstName] = useState(me.firstName);
+  const [lastName, setLastName] = useState(me.lastName);
+  const [phone, setPhone] = useState(me.phone ?? "");
+  const [email, setEmail] = useState(me.email ?? "");
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return;
