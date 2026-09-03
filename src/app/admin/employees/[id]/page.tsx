@@ -6,6 +6,8 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/Button";
 import { Dot } from "@/components/ui/Card";
 import { useAppStore } from "@/lib/store";
+import { supabase, supabaseConfigured } from "@/lib/supabase";
+import { MIN_PASSWORD_LENGTH } from "@/lib/authConstants";
 import type { Employee } from "@/lib/types";
 
 const inputClass =
@@ -42,6 +44,9 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
   const [role, setRole] = useState(employee.role);
   const [status, setStatus] = useState(employee.status);
 
+  const [newPassword, setNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+
   const handleSave = () => {
     updateEmployee(employee.id, {
       firstName: firstName.trim() || employee.firstName,
@@ -50,6 +55,34 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
       status,
     });
     showToast("Fiche employée mise à jour");
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      showToast(`Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères`);
+      return;
+    }
+    setChangingPassword(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch(`/api/employees/${employee.id}/password`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setChangingPassword(false);
+
+    if (!res.ok) {
+      showToast(json.error || "Impossible de modifier le mot de passe");
+      return;
+    }
+    setNewPassword("");
+    showToast("Mot de passe mis à jour");
   };
 
   return (
@@ -117,6 +150,32 @@ function EmployeeEditForm({ employee }: { employee: Employee }) {
           Enregistrer
         </Button>
       </div>
+
+      {supabaseConfigured ? (
+        <div className="mt-8">
+          <div className="mb-3 font-caps text-[10.5px] tracking-[1.6px] text-tertiary">SÉCURITÉ</div>
+          <label className="block">
+            <div className={labelClass}>Nouveau mot de passe</div>
+            <input
+              type="text"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder={`Au moins ${MIN_PASSWORD_LENGTH} caractères`}
+              className={inputClass}
+            />
+          </label>
+          <div className="mt-2 rounded-2xl border border-border-soft bg-[#fdfaf3] px-4 py-3 text-[12px] leading-relaxed text-secondary-2">
+            Ne fonctionne que pour un compte créé via cette page (le sien y compris) — une fiche
+            plus ancienne, ajoutée avant cette fonctionnalité, n&apos;a pas de compte de connexion
+            réel à modifier.
+          </div>
+          <div className="mt-3.5">
+            <Button variant="outline" onClick={handleChangePassword} disabled={changingPassword}>
+              {changingPassword ? "Mise à jour..." : "Mettre à jour le mot de passe"}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
