@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { ReservationPrintable } from "@/components/ui/ReservationPrintable";
 import { CheckIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
 import { findModel } from "@/lib/selectors";
@@ -74,6 +75,13 @@ export default function ReservationSuccessPage() {
           Imprimer
         </div>
       </div>
+
+      <ReservationPrintable
+        reservation={reservation}
+        customer={customer}
+        model={model}
+        unit={unit}
+      />
     </div>
   );
 }
