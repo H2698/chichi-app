@@ -35,7 +35,7 @@ export default function ReturnDonePage() {
         <div className="text-[14px] text-[#4f5f6d]">Statut : À nettoyer</div>
       </div>
       <div className="mt-8 w-full">
-        <Button variant="dark" onClick={() => router.push(`/dress/${lastReturn.unitRef}`)}>
+        <Button variant="dark" onClick={() => router.push("/home")}>
           Terminer
         </Button>
       </div>
