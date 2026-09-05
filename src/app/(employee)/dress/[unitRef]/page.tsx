@@ -62,7 +62,7 @@ export default function DressDetailPage() {
   const badge = badgeForUnitStatus(unit.baseStatus);
   const active = activeReservationForUnit(unit.ref, reservations);
   const customer = active ? customers.find((c) => c.id === active.customerId) : undefined;
-  const late = active ? isLate(active) : false;
+  const late = active ? isLate(active, units) : false;
   const siblings = units.filter((u) => u.modelId === unit.modelId && u.size === unit.size);
 
   const goToCalendar = () => {

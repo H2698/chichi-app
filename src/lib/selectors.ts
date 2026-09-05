@@ -85,8 +85,20 @@ export function reservationStatus(r: Reservation, units: DressUnit[]): Reservati
   return "CONFIRMEE";
 }
 
-export function isLate(r: Reservation): boolean {
-  return isActive(r) && r.returnDay < TODAY_DAY;
+/**
+ * A reservation only reads as genuinely late once its dress hasn't come
+ * back — i.e. the unit is still actually "louee" — not just because its
+ * `returnDay` is in the past and it hasn't been marked completed. Those two
+ * can drift apart: a return normally sets both together (confirmReturn),
+ * but a handful of old reservations were confirmed some other way (a
+ * pre-existing data issue, and the "hors service" toggle changes a unit's
+ * status without touching any reservation) and were left permanently
+ * "late" even though their unit had already been returned to stock.
+ */
+export function isLate(r: Reservation, units: DressUnit[]): boolean {
+  if (!isActive(r) || r.returnDay >= TODAY_DAY) return false;
+  const unit = units.find((u) => u.ref === r.unitRef);
+  return unit?.baseStatus === "louee";
 }
 
 /** Per-day calendar status for a unit, combining its live base status with its reservations. */
@@ -139,7 +151,7 @@ export function getHomeStats(units: DressUnit[], reservations: Reservation[]): H
   const pickupsToday = reservations.filter((r) => isActive(r) && r.pickupDay === TODAY_DAY).length;
   const returnsToday = reservations.filter((r) => isActive(r) && r.returnDay === TODAY_DAY).length;
   const availableUnits = units.filter((u) => u.baseStatus === "disponible").length;
-  const lateCount = reservations.filter(isLate).length;
+  const lateCount = reservations.filter((r) => isLate(r, units)).length;
   return { pickupsToday, returnsToday, availableUnits, lateCount };
 }
 
@@ -342,7 +354,7 @@ export function getNotifications(
   };
 
   for (const r of reservations) {
-    if (isLate(r)) {
+    if (isLate(r, units)) {
       items.push({
         id: `retard-${r.id}`,
         kind: "retard",
