@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot } from "@/components/ui/Card";
 import { UnitQrSheet } from "@/components/ui/UnitQrSheet";
-import { EyeOffIcon, PlusIcon, PrinterIcon, QrIcon, TrashIcon, UploadIcon } from "@/components/icons";
+import { CheckIcon, EyeOffIcon, PlusIcon, PrinterIcon, QrIcon, TrashIcon, UploadIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
 import { AVAILABLE_SIZES, DRESS_CATEGORIES } from "@/lib/mock-data";
 import { findModel } from "@/lib/selectors";
@@ -43,6 +43,7 @@ function DressEditForm({ model }: { model: DressModel }) {
   const setModelDisabled = useAppStore((s) => s.setModelDisabled);
   const addUnitsForSize = useAppStore((s) => s.addUnitsForSize);
   const removeUnit = useAppStore((s) => s.removeUnit);
+  const setUnitStatus = useAppStore((s) => s.setUnitStatus);
   const showToast = useAppStore((s) => s.showToast);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [qrSheet, setQrSheet] = useState<{ ref: string; autoPrint: boolean } | null>(null);
@@ -220,6 +221,31 @@ function DressEditForm({ model }: { model: DressModel }) {
                                   {badge.labelSoft}
                                 </div>
                               </div>
+                              {u.baseStatus === "indispo" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUnitStatus(u.ref, "disponible");
+                                    showToast(`${u.ref} · Remise en service`);
+                                  }}
+                                  className="flex items-center gap-1 text-[11.5px] text-[#5f7355]"
+                                  title="Remettre disponible"
+                                >
+                                  <CheckIcon size={13} strokeWidth={1.6} /> Remettre disponible
+                                </button>
+                              ) : u.baseStatus !== "louee" ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUnitStatus(u.ref, "indispo");
+                                    showToast(`${u.ref} · Hors service`);
+                                  }}
+                                  className="flex items-center gap-1 text-[11.5px] text-tertiary"
+                                  title="Marquer hors service"
+                                >
+                                  <EyeOffIcon size={13} strokeWidth={1.6} /> Hors service
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
                                 onClick={() => setQrSheet({ ref: u.ref, autoPrint: false })}
