@@ -1,7 +1,7 @@
 import type { UnitStatus } from "./types";
 
 /** Badge shown on the Fiche robe screen — dot, label, soft translucent background. */
-export const BADGE: Record<"disponible" | "louee" | "nettoyage", {
+export const BADGE: Record<"disponible" | "louee" | "nettoyage" | "indispo", {
   key: string;
   label: string;
   labelSoft: string;
@@ -33,6 +33,14 @@ export const BADGE: Record<"disponible" | "louee" | "nettoyage", {
     dot: "#7b8ba3",
     softBg: "rgba(242,246,248,.94)",
   },
+  indispo: {
+    key: "indispo",
+    label: "HORS SERVICE",
+    labelSoft: "Hors service",
+    fg: "#8a8171",
+    dot: "#a49c8e",
+    softBg: "rgba(241,238,232,.94)",
+  },
 };
 
 /** Calendar-day + gallery status palette — matches the README status table exactly. */
@@ -61,8 +69,13 @@ export const LATE = { fg: "#8f4331", dot: "#b1553f", bg: "#f6e3dd" };
 export function badgeForUnitStatus(status: UnitStatus) {
   if (status === "louee") return BADGE.louee;
   if (status === "nettoyage") return BADGE.nettoyage;
-  // 'reservee' and 'indispo' units are still physically in the shop between
-  // bookings, so the fiche robe badge treats them as available; 'indispo'
-  // units are additionally flagged in their own panel.
+  // 'indispo' (out of service — damaged, retired, etc.) genuinely isn't
+  // available to rent, so it gets its own badge; it used to fall through to
+  // "disponible" here, contradicting the "Hors service" panel shown just
+  // below it on the same screen.
+  if (status === "indispo") return BADGE.indispo;
+  // 'reservee' units are still physically in the shop and available for
+  // pickup today (they only carry a future booking), so the badge treats
+  // them as available.
   return BADGE.disponible;
 }
