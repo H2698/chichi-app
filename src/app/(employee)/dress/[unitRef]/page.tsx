@@ -63,7 +63,11 @@ export default function DressDetailPage() {
   const active = activeReservationForUnit(unit.ref, reservations);
   const customer = active ? customers.find((c) => c.id === active.customerId) : undefined;
   const late = active ? isLate(active, units) : false;
-  const siblings = units.filter((u) => u.modelId === unit.modelId && u.size === unit.size);
+  // All physical units for this model, grouped by size — not just units that
+  // share the current unit's size — so the employee can see and switch into
+  // any available size before starting a new reservation.
+  const modelUnits = units.filter((u) => u.modelId === unit.modelId);
+  const sizesInUse = Array.from(new Set(modelUnits.map((u) => u.size))).sort();
 
   const goToCalendar = () => {
     openCalendarFor(unit.ref);
@@ -228,48 +232,67 @@ export default function DressDetailPage() {
         </div>
 
         <div className="mt-[26px]">
-          <div className="font-serif text-[22px] text-ink">
-            Unités physiques · Taille {unit.size}
+          <div className="font-serif text-[22px] text-ink">Unités physiques</div>
+          <div className="mt-1 text-[12.5px] text-secondary-2">
+            Touchez une autre taille pour l&apos;ouvrir et démarrer une réservation avec.
           </div>
-          <div className="mt-3 flex flex-col gap-[9px]">
-            {siblings.map((s) => {
-              const b = badgeForUnitStatus(s.baseStatus);
-              const isCurrent = s.ref === unit.ref;
+          <div className="mt-3 flex flex-col gap-5">
+            {sizesInUse.map((size) => {
+              const sizeUnits = modelUnits.filter((u) => u.size === size);
               return (
-                <div
-                  key={s.ref}
-                  className="flex items-center justify-between rounded-[14px] border border-border bg-card px-4 py-[13px]"
-                >
-                  <div
-                    onClick={() => !isCurrent && router.push(`/dress/${s.ref}`)}
-                    className={`flex-1 font-caps text-[11px] tracking-[1.6px] text-ink ${
-                      isCurrent ? "" : "cursor-pointer"
-                    }`}
-                  >
-                    {s.ref}
-                    {isCurrent ? <span className="ml-2 text-tertiary">(consultée)</span> : null}
+                <div key={size}>
+                  <div className="mb-2 font-caps text-[10px] tracking-[1.8px] text-tertiary">
+                    TAILLE {size}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-[7px]">
-                      <Dot color={b.dot} size={5} />
-                      <div className="text-[12.5px]" style={{ color: b.fg }}>
-                        {b.labelSoft}
-                      </div>
-                    </div>
-                    <div
-                      onClick={() => setQrSheet({ ref: s.ref, autoPrint: false })}
-                      className="cursor-pointer text-gold"
-                      title="Voir QR"
-                    >
-                      <QrIcon size={15} strokeWidth={1.3} />
-                    </div>
-                    <div
-                      onClick={() => setQrSheet({ ref: s.ref, autoPrint: true })}
-                      className="cursor-pointer text-gold"
-                      title="Imprimer l'étiquette"
-                    >
-                      <PrinterIcon size={15} strokeWidth={1.3} />
-                    </div>
+                  <div className="flex flex-col gap-[9px]">
+                    {sizeUnits.map((s) => {
+                      const b = badgeForUnitStatus(s.baseStatus);
+                      const isCurrent = s.ref === unit.ref;
+                      return (
+                        <div
+                          key={s.ref}
+                          className="flex items-center justify-between rounded-[14px] border px-4 py-[13px]"
+                          style={{
+                            borderColor: isCurrent ? "#dcc9a4" : "var(--border)",
+                            background: isCurrent ? "#fdf7ea" : "var(--card)",
+                          }}
+                        >
+                          <div
+                            onClick={() => !isCurrent && router.push(`/dress/${s.ref}`)}
+                            className={`flex-1 font-caps text-[11px] tracking-[1.6px] text-ink ${
+                              isCurrent ? "" : "cursor-pointer"
+                            }`}
+                          >
+                            {s.ref}
+                            {isCurrent ? (
+                              <span className="ml-2 text-tertiary">(consultée)</span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-[7px]">
+                              <Dot color={b.dot} size={5} />
+                              <div className="text-[12.5px]" style={{ color: b.fg }}>
+                                {b.labelSoft}
+                              </div>
+                            </div>
+                            <div
+                              onClick={() => setQrSheet({ ref: s.ref, autoPrint: false })}
+                              className="cursor-pointer text-gold"
+                              title="Voir QR"
+                            >
+                              <QrIcon size={15} strokeWidth={1.3} />
+                            </div>
+                            <div
+                              onClick={() => setQrSheet({ ref: s.ref, autoPrint: true })}
+                              className="cursor-pointer text-gold"
+                              title="Imprimer l'étiquette"
+                            >
+                              <PrinterIcon size={15} strokeWidth={1.3} />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
