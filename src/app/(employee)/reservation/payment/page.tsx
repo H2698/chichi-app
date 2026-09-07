@@ -15,6 +15,7 @@ export default function ReservationPaymentPage() {
   const router = useRouter();
   const draft = useAppStore((s) => s.draft);
   const setMethod = useAppStore((s) => s.setMethod);
+  const setPaid = useAppStore((s) => s.setPaid);
   const units = useAppStore((s) => s.units);
   const models = useAppStore((s) => s.models);
 
@@ -47,7 +48,27 @@ export default function ReservationPaymentPage() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="text-[13.5px] text-secondary-2">Montant payé</div>
-              <div className="font-serif text-[22px] text-ink">{draft.paid} DT</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={model.price}
+                  inputMode="numeric"
+                  value={draft.paid}
+                  onChange={(e) => setPaid(Number(e.target.value) || 0)}
+                  className="w-[84px] rounded-[10px] border border-border-input bg-transparent px-2 py-1 text-right font-serif text-[22px] text-ink outline-none"
+                />
+                <span className="font-serif text-[22px] text-ink">DT</span>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setPaid(model.price)}
+                className="font-caps text-[9.5px] tracking-[1.4px] text-gold"
+              >
+                Payer le montant total
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <div className="text-[13.5px] text-secondary-2">Caution</div>

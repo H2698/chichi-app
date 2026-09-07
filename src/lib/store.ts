@@ -229,6 +229,7 @@ interface AppState {
   pickCustomer: (customerId: string) => void;
   addCustomer: (fields: { firstName: string; lastName: string; phone: string; email?: string }) => string;
   setMethod: (method: PaymentMethod) => void;
+  setPaid: (paid: number) => void;
 
   lastReservationId: string | null;
   confirmReservation: () => string | null;
@@ -395,6 +396,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     return id;
   },
   setMethod: (method) => set((st) => ({ draft: { ...st.draft, method } })),
+  setPaid: (paid) =>
+    set((st) => {
+      const unit = st.units.find((u) => u.ref === st.draft.unitRef);
+      const model = unit ? findModel(unit.modelId, st.models) : undefined;
+      const max = model?.price ?? Infinity;
+      const clamped = Math.min(Math.max(0, Math.round(paid)), max);
+      return { draft: { ...st.draft, paid: clamped } };
+    }),
 
   lastReservationId: null,
   confirmReservation: () => {
