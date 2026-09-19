@@ -10,6 +10,7 @@ import { useAppStore } from "@/lib/store";
 import { AVAILABLE_SIZES, DRESS_CATEGORIES } from "@/lib/mock-data";
 import { nextModelId, nextUnitRefs } from "@/lib/selectors";
 import { uploadPhoto } from "@/lib/supabase";
+import { getDressNameSuggestions } from "@/lib/dress-name-suggestions";
 
 const inputClass =
   "w-full rounded-[14px] border border-border-input bg-card px-4 py-3 text-[15px] text-ink outline-none";
@@ -31,6 +32,16 @@ export default function NewDressPage() {
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [suggestionOffset, setSuggestionOffset] = useState(0);
+
+  const nameSuggestions = useMemo(
+    () => getDressNameSuggestions(category, color, models.map((model) => model.name)),
+    [category, color, models]
+  );
+  const visibleSuggestions = Array.from(
+    { length: Math.min(4, nameSuggestions.length) },
+    (_, index) => nameSuggestions[(suggestionOffset + index) % nameSuggestions.length]
+  );
 
   const nextId = useMemo(() => nextModelId(models), [models]);
   const previewRefs = useMemo(() => {
@@ -129,7 +140,7 @@ export default function NewDressPage() {
               <div className={labelClass}>CATÉGORIE</div>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => { setCategory(e.target.value); setSuggestionOffset(0); }}
                 className={inputClass}
               >
                 {DRESS_CATEGORIES.map((c) => (
@@ -139,11 +150,46 @@ export default function NewDressPage() {
                 ))}
               </select>
             </label>
+            {visibleSuggestions.length > 0 && (
+              <div className="rounded-2xl border border-border-soft bg-card px-4 py-3.5 sm:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className={labelClass}>IDÉES DE NOMS</div>
+                  <button
+                    type="button"
+                    disabled={nameSuggestions.length <= 4}
+                    onClick={() => setSuggestionOffset((offset) => (offset + 4) % nameSuggestions.length)}
+                    className="min-h-10 cursor-pointer rounded-lg px-2 text-[13px] text-gold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-gold disabled:cursor-default disabled:opacity-50"
+                  >
+                    Autres idées
+                  </button>
+                </div>
+                <p className="mb-3 text-[12.5px] text-secondary-2">
+                  Selon la catégorie et la couleur. Cliquez sur un nom pour le choisir.
+                </p>
+                <div role="group" aria-label="Suggestions de noms" className="flex flex-wrap gap-2">
+                  {visibleSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      aria-pressed={name === suggestion}
+                      onClick={() => setName(suggestion)}
+                      className={`min-h-10 max-w-full cursor-pointer rounded-full border px-3.5 py-2 text-left text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-gold ${
+                        name === suggestion
+                          ? "border-ink bg-ink text-gold-ink"
+                          : "border-border-input bg-app text-ink hover:border-gold hover:bg-pill"
+                      }`}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <label className="block">
               <div className={labelClass}>COULEUR</div>
               <input
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={(e) => { setColor(e.target.value); setSuggestionOffset(0); }}
                 placeholder="Ex. Rubis"
                 className={inputClass}
               />
