@@ -18,7 +18,6 @@ export default function HomePage() {
   const authUserId = useAppStore((s) => s.authUserId);
   const authUserEmail = useAppStore((s) => s.authUserEmail);
   const readNotificationIds = useAppStore((s) => s.readNotificationIds);
-  const showToast = useAppStore((s) => s.showToast);
 
   // Every screen used to greet whoever opened the app as "Chichi" — the
   // original shared account — regardless of which employee actually signed
@@ -50,10 +49,7 @@ export default function HomePage() {
     {
       label: "Rechercher une cliente",
       icon: <SearchIcon size={19} />,
-      onClick: () => {
-        showToast("Choisissez une robe pour commencer une réservation");
-        router.push("/dresses");
-      },
+      onClick: () => router.push("/customers"),
     },
     {
       label: "Voir les retours",
@@ -192,10 +188,11 @@ export default function HomePage() {
       <div className="mt-[30px] font-serif text-[23px] text-ink">Actions rapides</div>
       <div className="mt-3.5 flex flex-col gap-[11px]">
         {quick.map((q) => (
-          <div
+          <button
             key={q.label}
+            type="button"
             onClick={q.onClick}
-            className="flex cursor-pointer items-center gap-[14px] rounded-[32px] bg-pill px-[18px] py-[11px] hover:bg-pill-hover"
+            className="flex w-full cursor-pointer items-center gap-[14px] rounded-[32px] bg-pill px-[18px] py-[11px] text-left hover:bg-pill-hover"
           >
             <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border border-[#e3d4b3] bg-card text-gold">
               {q.icon}
@@ -204,7 +201,7 @@ export default function HomePage() {
             <div className="text-[18px] text-[#c9a869]">
               <ChevronRightIcon size={16} />
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

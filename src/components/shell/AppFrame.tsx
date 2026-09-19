@@ -6,7 +6,7 @@ import { BottomNav } from "./BottomNav";
 import { Toast } from "@/components/ui/Toast";
 import { useAppStore } from "@/lib/store";
 
-const NAV_ROUTES = ["/home", "/dresses", "/reservations", "/profile"];
+const NAV_ROUTES = ["/home", "/dresses", "/reservations", "/customers", "/profile"];
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
