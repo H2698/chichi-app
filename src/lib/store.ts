@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { CUSTOMERS, DRESS_MODELS, DRESS_UNITS, EMPLOYEES, SEED_RESERVATIONS, TODAY_DAY } from "./mock-data";
-import { activeReservationForUnit, findModel, getUnitDayStatus, nextModelId, nextUnitRefs } from "./selectors";
+import { activeReservationForUnit, findModel, getReservationActions, getUnitDayStatus, nextModelId, nextUnitRefs } from "./selectors";
 import { supabase, supabaseConfigured } from "./supabase";
 import type {
   Customer,
@@ -226,6 +226,8 @@ interface AppState {
 
   draft: ReservationDraft;
   startReservationDraft: (unitRef: string) => void;
+  setPickupTime: (pickupTime: string) => void;
+  setReturnTime: (returnTime: string) => void;
   pickCustomer: (customerId: string) => void;
   addCustomer: (fields: { firstName: string; lastName: string; phone: string; email?: string }) => string;
   setMethod: (method: PaymentMethod) => void;
@@ -233,7 +235,9 @@ interface AppState {
 
   lastReservationId: string | null;
   confirmReservation: () => string | null;
-  cancelReservation: (id: string) => void;
+  pendingReservationAction: string | null;
+  confirmPickup: (id: string) => Promise<boolean>;
+  cancelReservation: (id: string) => Promise<boolean>;
 
   setUnitStatus: (unitRef: string, status: UnitStatus) => void;
 
@@ -364,6 +368,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     });
   },
+  setPickupTime: (pickupTime) => set((st) => ({ draft: { ...st.draft, pickupTime } })),
+  setReturnTime: (returnTime) => set((st) => ({ draft: { ...st.draft, returnTime } })),
   pickCustomer: (customerId) => set((st) => ({ draft: { ...st.draft, customerId } })),
   addCustomer: (fields) => {
     const id = `cust-${Date.now()}`;
@@ -466,11 +472,56 @@ export const useAppStore = create<AppState>((set, get) => ({
     // startReservationDraft() overwrites it wholesale for the next booking.
     return id;
   },
-  cancelReservation: (id) => {
-    set((st) => ({
-      reservations: st.reservations.map((r) => (r.id === id ? { ...r, cancelled: true } : r)),
-    }));
-    syncRemote("cancelReservation", supabase.from("reservations").update({ cancelled: true }).eq("id", id));
+  pendingReservationAction: null,
+  confirmPickup: async (id) => {
+    const state = get();
+    const reservation = state.reservations.find((r) => r.id === id);
+    if (state.pendingReservationAction || !reservation ||
+        !getReservationActions(reservation, state.units, state.reservations).canPickup) return false;
+    const unit = state.units.find((u) => u.ref === reservation.unitRef)!;
+    set({ pendingReservationAction: id });
+    try {
+      if (supabaseConfigured) {
+        const { error } = await supabase.from("units")
+          .update({ base_status: "louee" }).eq("ref", unit.ref)
+          .eq("base_status", unit.baseStatus).select("ref").single();
+        if (error) throw error;
+      }
+      set((st) => ({
+        units: st.units.map((u) => u.ref === unit.ref ? { ...u, baseStatus: "louee" } : u),
+      }));
+      get().showToast("Retrait confirmé · robe remise à la cliente");
+      return true;
+    } catch (error) {
+      console.error("[supabase] confirmPickup failed:", error);
+      return false;
+    } finally {
+      set({ pendingReservationAction: null });
+    }
+  },
+  cancelReservation: async (id) => {
+    const state = get();
+    const reservation = state.reservations.find((r) => r.id === id);
+    if (state.pendingReservationAction || !reservation ||
+        !getReservationActions(reservation, state.units, state.reservations).canCancel) return false;
+    set({ pendingReservationAction: id });
+    try {
+      if (supabaseConfigured) {
+        const { error } = await supabase.from("reservations")
+          .update({ cancelled: true }).eq("id", id).select("id").single();
+        if (error) throw error;
+      }
+      set((st) => ({
+        reservations: st.reservations.map((r) => r.id === id ? { ...r, cancelled: true } : r),
+      }));
+      get().showToast("Réservation annulée");
+      return true;
+    } catch (error) {
+      console.error("[supabase] cancelReservation failed:", error);
+      return false;
+    } finally {
+      set({ pendingReservationAction: null });
+    }
   },
 
   setUnitStatus: (unitRef, status) => {

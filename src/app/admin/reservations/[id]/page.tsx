@@ -5,6 +5,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Button } from "@/components/ui/Button";
 import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot } from "@/components/ui/Card";
+import { ReservationActions } from "@/components/ui/ReservationActions";
 import { useAppStore } from "@/lib/store";
 import { findModel, reservationStatus, unitLabel } from "@/lib/selectors";
 import { dayLabelFull, money } from "@/lib/format";
@@ -25,8 +26,6 @@ export default function AdminReservationDetailPage() {
   const units = useAppStore((s) => s.units);
   const models = useAppStore((s) => s.models);
   const customers = useAppStore((s) => s.customers);
-  const cancelReservation = useAppStore((s) => s.cancelReservation);
-  const showToast = useAppStore((s) => s.showToast);
 
   const reservation = reservations.find((r) => r.id === params.id);
 
@@ -42,7 +41,6 @@ export default function AdminReservationDetailPage() {
   const model = unit ? findModel(unit.modelId, models) : undefined;
   const customer = customers.find((c) => c.id === reservation.customerId);
   const status = STATUS_STYLE[reservationStatus(reservation, units)];
-  const canCancel = !reservation.completed && !reservation.cancelled;
 
   return (
     <div className="mx-auto max-w-[560px] px-[22px] pb-10 pt-2.5 lg:mx-0 lg:px-0 lg:pt-0">
@@ -92,6 +90,7 @@ export default function AdminReservationDetailPage() {
       </div>
 
       <div className="mt-5 flex flex-col gap-2.5">
+        <ReservationActions key={reservation.id} reservationId={reservation.id} />
         {unit ? (
           <Button variant="outline" onClick={() => router.push(`/dress/${unit.ref}`)}>
             Voir la fiche robe
@@ -100,18 +99,6 @@ export default function AdminReservationDetailPage() {
         {customer ? (
           <Button variant="outline" onClick={() => router.push(`/admin/customers/${customer.id}`)}>
             Voir la cliente
-          </Button>
-        ) : null}
-        {canCancel ? (
-          <Button
-            variant="ghost"
-            className="!text-[#b1553f]"
-            onClick={() => {
-              cancelReservation(reservation.id);
-              showToast("Réservation annulée");
-            }}
-          >
-            Annuler la réservation
           </Button>
         ) : null}
       </div>

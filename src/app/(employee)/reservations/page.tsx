@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BackHeader } from "@/components/shell/BackHeader";
 import { ImageSlot } from "@/components/ui/ImageSlot";
 import { Dot } from "@/components/ui/Card";
+import { ReservationActions } from "@/components/ui/ReservationActions";
 import { useAppStore } from "@/lib/store";
 import { TODAY_DAY } from "@/lib/mock-data";
 import { WEEKDAYS_FR, dayLabel, monthLabel } from "@/lib/format";
@@ -178,37 +179,48 @@ export default function ReservationsPage() {
               <div
                 key={r.id}
                 ref={isHighlighted ? highlightRef : undefined}
-                onClick={() => unit && router.push(`/dress/${unit.ref}`)}
-                className="flex cursor-pointer items-center gap-[13px] rounded-[18px] border p-[13px]"
+                className="rounded-[18px] border p-[13px]"
                 style={{
                   borderColor: isHighlighted ? "#a5813f" : "var(--color-border)",
                   background: isHighlighted ? "#fdf7ea" : "var(--color-card)",
                   boxShadow: isHighlighted ? "0 0 0 1px #a5813f" : "none",
                 }}
               >
-                <div className="h-[78px] w-[60px] flex-shrink-0 overflow-hidden rounded-xl bg-[#efe6d5]">
-                  <ImageSlot placeholder="Robe" shape="rounded" radius={12} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-serif text-[21px] text-ink">
-                    {customer ? `${customer.firstName} ${customer.lastName}` : "Cliente"}
+                <button
+                  type="button"
+                  onClick={() => unit && router.push(`/dress/${unit.ref}`)}
+                  className="flex w-full cursor-pointer items-center gap-[13px] text-left"
+                  aria-label={`Voir la robe · ${r.id}`}
+                >
+                  <div className="h-[78px] w-[60px] flex-shrink-0 overflow-hidden rounded-xl bg-[#efe6d5]">
+                    <ImageSlot src={models.find((m) => m.id === unit?.modelId)?.photoUrl} placeholder="Robe" shape="rounded" radius={12} />
                   </div>
-                  <div className="mt-[3px] text-[13px] text-secondary-2">
-                    {unit ? unitLabel(unit, models) : ""}
-                  </div>
-                  <div className="mt-1 text-[12.5px] text-secondary">
-                    {dayLabel(r.pickupDay)} → {dayLabel(r.returnDay)}
-                  </div>
-                  <div className="mt-[7px] flex items-center gap-1.5">
-                    <Dot color={status.dot} size={5} />
-                    <div
-                      className="font-caps text-[9px] tracking-[1.6px]"
-                      style={{ color: status.fg }}
-                    >
-                      {status.label}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-serif text-[21px] text-ink">
+                      {customer ? `${customer.firstName} ${customer.lastName}` : "Cliente"}
+                    </div>
+                    <div className="mt-[3px] text-[13px] text-secondary-2">
+                      {unit ? unitLabel(unit, models) : ""}
+                    </div>
+                    <div className="mt-1 text-[12.5px] text-secondary">
+                      {dayLabel(r.pickupDay)} → {dayLabel(r.returnDay)}
+                    </div>
+                    <div className="mt-[7px] flex items-center gap-1.5">
+                      <Dot color={status.dot} size={5} />
+                      <div
+                        className="font-caps text-[9px] tracking-[1.6px]"
+                        style={{ color: status.fg }}
+                      >
+                        {status.label}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </button>
+                {!r.completed && !r.cancelled && (
+                  <div className="mt-3 border-t border-border-soft pt-3">
+                    <ReservationActions reservationId={r.id} />
+                  </div>
+                )}
               </div>
             );
           })

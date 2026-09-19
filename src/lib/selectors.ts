@@ -71,6 +71,28 @@ export function nextUpcomingReservationForUnit(
     .sort((a, b) => a.pickupDay - b.pickupDay)[0];
 }
 
+/** Actions concern one booking, even when the same dress has future bookings. */
+export function getReservationActions(
+  reservation: Reservation,
+  units: DressUnit[],
+  reservations: Reservation[]
+) {
+  const unit = units.find((u) => u.ref === reservation.unitRef);
+  const active = activeReservationForUnit(reservation.unitRef, reservations);
+  const open = isActive(reservation);
+  const checkedOut = open && unit?.baseStatus === "louee" && active?.id === reservation.id;
+  return {
+    checkedOut,
+    canPickup:
+      open &&
+      active?.id === reservation.id &&
+      reservation.pickupDay <= TODAY_DAY &&
+      reservation.returnDay >= TODAY_DAY &&
+      (unit?.baseStatus === "disponible" || unit?.baseStatus === "reservee"),
+    canCancel: open && !checkedOut,
+  };
+}
+
 /**
  * A reservation only reads as "RETOUR PRÉVU" once the unit has actually been
  * checked out (baseStatus 'louee'); a same-day pickup that hasn't happened
@@ -79,9 +101,10 @@ export function nextUpcomingReservationForUnit(
 export function reservationStatus(r: Reservation, units: DressUnit[]): ReservationStatus {
   if (r.cancelled) return "ANNULEE";
   if (r.completed) return "TERMINEE";
-  if (r.returnDay < TODAY_DAY) return "EN_RETARD";
   const unit = units.find((u) => u.ref === r.unitRef);
-  if (unit?.baseStatus === "louee") return "RETOUR_PREVU";
+  if (unit?.baseStatus === "louee" && r.pickupDay <= TODAY_DAY) {
+    return r.returnDay < TODAY_DAY ? "EN_RETARD" : "RETOUR_PREVU";
+  }
   return "CONFIRMEE";
 }
 

@@ -13,6 +13,8 @@ import { dayLabelFull } from "@/lib/format";
 export default function ReservationDatesPage() {
   const router = useRouter();
   const draft = useAppStore((s) => s.draft);
+  const setPickupTime = useAppStore((s) => s.setPickupTime);
+  const setReturnTime = useAppStore((s) => s.setReturnTime);
   const units = useAppStore((s) => s.units);
   const models = useAppStore((s) => s.models);
 
@@ -26,6 +28,13 @@ export default function ReservationDatesPage() {
   const model = unit ? findModel(unit.modelId, models) : undefined;
   if (!unit || !model) return null;
 
+  const timeError =
+    !draft.pickupTime || !draft.returnTime
+      ? "Renseignez les heures de retrait et de retour."
+      : draft.pickupDay === draft.returnDay && draft.returnTime <= draft.pickupTime
+        ? "L’heure de retour doit être après l’heure de retrait."
+        : null;
+
   return (
     <div className="chi-rise pb-[30px]">
       <ReservationHeader step="dates" />
@@ -38,16 +47,32 @@ export default function ReservationDatesPage() {
         <div className="mt-[22px] flex flex-col gap-3">
           <div className="rounded-[20px] border border-border bg-card px-5 py-[18px]">
             <div className="font-caps text-[9.5px] tracking-[2.2px] text-gold">RETRAIT</div>
-            <div className="mt-2.5 flex items-end justify-between">
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
               <div className="font-serif text-[26px] text-ink">{dayLabelFull(draft.pickupDay)}</div>
-              <div className="font-serif text-[26px] text-gold">{draft.pickupTime}</div>
+              <input
+                type="time"
+                aria-label="Heure de retrait"
+                aria-describedby={timeError ? "reservation-time-error" : undefined}
+                required
+                value={draft.pickupTime}
+                onChange={(e) => setPickupTime(e.target.value)}
+                className="ml-auto min-h-11 w-[132px] rounded-lg border border-border-input bg-transparent px-2 text-[20px] text-gold outline-none focus:border-gold focus:ring-1 focus:ring-gold"
+              />
             </div>
           </div>
           <div className="rounded-[20px] border border-border bg-card px-5 py-[18px]">
             <div className="font-caps text-[9.5px] tracking-[2.2px] text-gold">RETOUR</div>
-            <div className="mt-2.5 flex items-end justify-between">
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
               <div className="font-serif text-[26px] text-ink">{dayLabelFull(draft.returnDay)}</div>
-              <div className="font-serif text-[26px] text-gold">{draft.returnTime}</div>
+              <input
+                type="time"
+                aria-label="Heure de retour"
+                aria-describedby={timeError ? "reservation-time-error" : undefined}
+                required
+                value={draft.returnTime}
+                onChange={(e) => setReturnTime(e.target.value)}
+                className="ml-auto min-h-11 w-[132px] rounded-lg border border-border-input bg-transparent px-2 text-[20px] text-gold outline-none focus:border-gold focus:ring-1 focus:ring-gold"
+              />
             </div>
           </div>
         </div>
@@ -70,7 +95,12 @@ export default function ReservationDatesPage() {
         </div>
 
         <div className="mt-[22px]">
-          <Button variant="dark" onClick={() => router.push("/reservation/customer")}>
+          {timeError && (
+            <p id="reservation-time-error" role="alert" className="mb-3 text-[13px] text-red-700">
+              {timeError}
+            </p>
+          )}
+          <Button variant="dark" disabled={Boolean(timeError)} onClick={() => router.push("/reservation/customer")}>
             Continuer
           </Button>
         </div>

@@ -7,9 +7,10 @@ import { Dot } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { UnitQrSheet } from "@/components/ui/UnitQrSheet";
+import { ReservationActions } from "@/components/ui/ReservationActions";
 import { ChevronLeftIcon, ClockIcon, PrinterIcon, QrIcon } from "@/components/icons";
 import { useAppStore } from "@/lib/store";
-import { activeReservationForUnit, findModel, isLate } from "@/lib/selectors";
+import { activeReservationForUnit, findModel, isLate, nextUpcomingReservationForUnit } from "@/lib/selectors";
 import { badgeForUnitStatus } from "@/lib/status";
 import { dayLabel, money } from "@/lib/format";
 import type { DressCondition } from "@/lib/types";
@@ -61,6 +62,12 @@ export default function DressDetailPage() {
   const model = findModel(unit.modelId, models)!;
   const badge = badgeForUnitStatus(unit.baseStatus);
   const active = activeReservationForUnit(unit.ref, reservations);
+  const pendingReservation = unit.baseStatus !== "louee"
+    ? active ?? nextUpcomingReservationForUnit(unit.ref, reservations)
+    : undefined;
+  const pendingCustomer = pendingReservation
+    ? customers.find((c) => c.id === pendingReservation.customerId)
+    : undefined;
   const customer = active ? customers.find((c) => c.id === active.customerId) : undefined;
   const late = active ? isLate(active, units) : false;
   // All physical units for this model, grouped by size — not just units that
@@ -192,6 +199,24 @@ export default function DressDetailPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {pendingReservation && (
+          <div className="mt-4 rounded-[18px] border border-border-input bg-card p-[18px]">
+            <div className="font-caps text-[9.5px] tracking-[2.2px] text-gold">RÉSERVATION</div>
+            <div className="mt-1.5 font-serif text-[24px] text-ink">
+              {pendingCustomer ? `${pendingCustomer.firstName} ${pendingCustomer.lastName}` : "Cliente"}
+            </div>
+            <div className="mt-2 text-[13px] text-secondary">
+              Retrait : {dayLabel(pendingReservation.pickupDay)} · {pendingReservation.pickupTime}
+            </div>
+            <div className="mt-1 text-[13px] text-secondary">
+              Retour : {dayLabel(pendingReservation.returnDay)} · {pendingReservation.returnTime}
+            </div>
+            <div className="mt-4">
+              <ReservationActions key={pendingReservation.id} reservationId={pendingReservation.id} />
+            </div>
           </div>
         )}
 
